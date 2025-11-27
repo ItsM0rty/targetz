@@ -28,8 +28,15 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
       scrollOffset: dragOffsetY.value,
       rowHeight: itemHeight.value,
       header: listOffset.value,
+      isDraggingThis: draggingItemId === todo.id,
     }),
     (values) => {
+      // Don't animate marginTop for the item being dragged
+      if (values.isDraggingThis) {
+        marginTop.value = 0;
+        return;
+      }
+      
       if (!values.dragPosition) {
         marginTop.value = withTiming(0, { duration: 120 });
         return;
@@ -43,7 +50,7 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
         duration: 120,
       });
     },
-    [index]
+    [index, todo.id, draggingItemId]
   );
 
   useEffect(() => {
@@ -64,26 +71,21 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
     [setItemHeight]
   );
 
+  const isDragging = draggingItemId === todo.id;
+
   const rowStyle = useAnimatedStyle(() => ({
     marginTop: marginTop.value,
     height: itemHeight.value,
+    // Make item invisible when dragging, but keep it in layout
+    opacity: isDragging ? 0 : 1,
   }));
-
-  const spacerStyle = useAnimatedStyle(() => ({
-    height: itemHeight.value,
-    marginTop: marginTop.value,
-  }));
-
-  if (draggingItemId === todo.id) {
-    return <Animated.View style={[styles.row, spacerStyle]} />;
-  }
 
   return (
     <Animated.View style={[styles.row, rowStyle]} onLayout={handleLayout}>
       <TodoItem
         todo={todo}
         index={index}
-        isActive={draggingItemId === todo.id}
+        isActive={isDragging}
         onLongPress={handleLongPress}
         onToggle={() => onToggle(todo.id)}
       />
