@@ -4,6 +4,7 @@ import { AddTargetButton } from './AddTargetButton';
 import { PlaceholderItem } from './PlaceholderItem';
 import TodoDragArea, { useDraggingContext } from './dragdrop/TodoDragArea';
 import DraggableTodoItem from './dragdrop/DraggableTodoItem';
+import DraggableStaticItem from './dragdrop/DraggableStaticItem';
 
 // Separate component to prevent re-renders of the parent
 export const TodoList = ({
@@ -91,17 +92,21 @@ export const TodoList = ({
       ({ item, index }) => {
         if (item.itemType === 'add-button') {
           return (
-            <View style={styles.staticRow}>
-              <AddTargetButton number={item.priority} onPress={onAddPress} />
-            </View>
+            <DraggableStaticItem index={index}>
+              <View style={styles.staticRow}>
+                <AddTargetButton number={item.priority} onPress={onAddPress} />
+              </View>
+            </DraggableStaticItem>
           );
         }
 
         if (item.itemType === 'placeholder') {
           return (
-            <View style={styles.staticRow}>
-              <PlaceholderItem number={item.priority} />
-            </View>
+            <DraggableStaticItem index={index}>
+              <View style={styles.staticRow}>
+                <PlaceholderItem number={item.priority} />
+              </View>
+            </DraggableStaticItem>
           );
         }
 

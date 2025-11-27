@@ -4,7 +4,7 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
+  withSpring,
 } from 'react-native-reanimated';
 import { TodoItem } from '../TodoItem';
 import { useDraggingContext } from './TodoDragArea';
@@ -14,10 +14,12 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
     setDraggingTask,
     dragY,
     draggingItemId,
+    draggingItemIndex,
     dragOffsetY,
     itemHeight,
     listOffset,
     setItemHeight,
+    hasMovedThreshold,
   } = useDraggingContext();
 
   const marginTop = useSharedValue(0);
@@ -29,28 +31,52 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
       rowHeight: itemHeight.value,
       header: listOffset.value,
       isDraggingThis: draggingItemId === todo.id,
+      originalDragIndex: draggingItemIndex,
+      hasMoved: hasMovedThreshold?.value ?? false,
     }),
     (values) => {
       // Don't animate marginTop for the item being dragged
       if (values.isDraggingThis) {
-        marginTop.value = 0;
+        marginTop.value = withSpring(0, {
+          damping: 15,
+          stiffness: 150,
+        });
         return;
       }
       
-      if (!values.dragPosition) {
-        marginTop.value = withTiming(0, { duration: 120 });
+      // Only shift items if drag has moved past threshold (prevents sensitivity on initial press)
+      if (!values.dragPosition || values.originalDragIndex === null || !values.hasMoved) {
+        marginTop.value = withSpring(0, {
+          damping: 15,
+          stiffness: 150,
+        });
         return;
       }
-      const itemY =
-        index * values.rowHeight + values.header - values.scrollOffset;
-      const shouldOffset =
-        values.dragPosition >= itemY &&
-        values.dragPosition < itemY + values.rowHeight;
-      marginTop.value = withTiming(shouldOffset ? values.rowHeight : 0, {
-        duration: 120,
-      });
+      
+      // Calculate target index based on drag position
+      // This determines where the dragged item would be inserted
+      const targetIndex = Math.max(0, Math.floor((values.dragPosition - values.header) / values.rowHeight));
+      const originalIndex = values.originalDragIndex;
+      
+      // Fluid drag-and-drop animation:
+      // Items at or below the target index shift DOWN to make space (except the original item)
+      // Items above the target index don't shift
+      
+      if (index >= targetIndex && index !== originalIndex) {
+        // This item is at or below the target position (and not the original) - shift it down
+        marginTop.value = withSpring(values.rowHeight, {
+          damping: 15,
+          stiffness: 150,
+        });
+      } else {
+        // This item is above the target position or is the original - no shift needed
+        marginTop.value = withSpring(0, {
+          damping: 15,
+          stiffness: 150,
+        });
+      }
     },
-    [index, todo.id, draggingItemId]
+    [index, todo.id, draggingItemId, draggingItemIndex]
   );
 
   useEffect(() => {
