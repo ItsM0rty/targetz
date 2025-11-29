@@ -20,8 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1A1D24"
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
       "package": "com.targetz.app",
       "permissions": [
