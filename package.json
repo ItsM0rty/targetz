@@ -39,7 +39,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "sharp": "^0.34.5"
   },
   "overrides": {},
   "private": true

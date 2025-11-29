@@ -165,7 +165,8 @@ dependencies {
         implementation("com.facebook.fresco:animated-gif:${expoLibs.versions.fresco.get()}")
     }
 
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    // WorkManager for background tasks
+    implementation "androidx.work:work-runtime-ktx:2.9.0"
 
     if (isWebpEnabled) {
         // For webp support
