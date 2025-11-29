@@ -1,6 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Text } from 'react-native';
-import { MotiView } from 'moti';
+import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/useTheme';
@@ -10,10 +9,7 @@ export const FloatingActionButton = ({ onPress }) => {
   const insets = useSafeAreaInsets();
   
   return (
-    <MotiView
-      from={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ type: 'spring', damping: 15 }}
+    <View
       style={[styles.wrapper, { bottom: insets.bottom + 24 }]}
     >
       <LinearGradient
@@ -30,7 +26,7 @@ export const FloatingActionButton = ({ onPress }) => {
           <Text style={styles.icon}>+</Text>
         </TouchableOpacity>
       </LinearGradient>
-    </MotiView>
+    </View>
   );
 };
 
