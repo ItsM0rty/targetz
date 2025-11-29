@@ -4,10 +4,22 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { TodoItem } from '../TodoItem';
 import { useDraggingContext } from './TodoDragArea';
+
+// Premium bezier easing curve for smooth, natural motion
+// Custom curve: smooth acceleration, gentle deceleration (premium feel)
+const PREMIUM_EASING = Easing.bezier(0.25, 0.1, 0.25, 1);
+
+// Animation duration: 200ms provides responsive feel while maintaining smoothness
+const ANIMATION_DURATION = 200;
+
+// Spacing factor: 52% provides optimal balance - tight enough to feel cohesive,
+// spacious enough to clearly indicate insertion point
+const SPACING_FACTOR = 0.52;
 
 const DraggableTodoItem = ({ todo, index, onToggle }) => {
   const {
@@ -22,7 +34,8 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
     hasMovedThreshold,
   } = useDraggingContext();
 
-  const marginTop = useSharedValue(0);
+  // Use translateY instead of marginTop for better GPU acceleration and smoother animations
+  const translateY = useSharedValue(0);
 
   useAnimatedReaction(
     () => ({
@@ -35,20 +48,20 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
       hasMoved: hasMovedThreshold?.value ?? false,
     }),
     (values) => {
-      // Don't animate marginTop for the item being dragged
+      // Don't animate translateY for the item being dragged
       if (values.isDraggingThis) {
-        marginTop.value = withSpring(0, {
-          damping: 15,
-          stiffness: 150,
+        translateY.value = withTiming(0, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
         });
         return;
       }
       
       // Only shift items if drag has moved past threshold (prevents sensitivity on initial press)
       if (!values.dragPosition || values.originalDragIndex === null || !values.hasMoved) {
-        marginTop.value = withSpring(0, {
-          damping: 15,
-          stiffness: 150,
+        translateY.value = withTiming(0, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
         });
         return;
       }
@@ -58,21 +71,23 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
       const targetIndex = Math.max(0, Math.floor((values.dragPosition - values.header) / values.rowHeight));
       const originalIndex = values.originalDragIndex;
       
-      // Fluid drag-and-drop animation:
+      // Premium drag-and-drop animation:
       // Items at or below the target index shift DOWN to make space (except the original item)
       // Items above the target index don't shift
+      // Using transform translateY for GPU acceleration and smoother performance
       
       if (index >= targetIndex && index !== originalIndex) {
         // This item is at or below the target position (and not the original) - shift it down
-        marginTop.value = withSpring(values.rowHeight, {
-          damping: 15,
-          stiffness: 150,
+        const shiftDistance = values.rowHeight * SPACING_FACTOR;
+        translateY.value = withTiming(shiftDistance, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
         });
       } else {
         // This item is above the target position or is the original - no shift needed
-        marginTop.value = withSpring(0, {
-          damping: 15,
-          stiffness: 150,
+        translateY.value = withTiming(0, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
         });
       }
     },
@@ -81,9 +96,9 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
 
   useEffect(() => {
     if (!draggingItemId) {
-      marginTop.value = 0;
+      translateY.value = 0;
     }
-  }, [draggingItemId, marginTop]);
+  }, [draggingItemId, translateY]);
 
   const handleLongPress = useCallback(() => {
     setDraggingTask(todo, index);
@@ -100,7 +115,8 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
   const isDragging = draggingItemId === todo.id;
 
   const rowStyle = useAnimatedStyle(() => ({
-    marginTop: marginTop.value,
+    // Use transform instead of marginTop for better performance and smoother animations
+    transform: [{ translateY: translateY.value }],
     height: itemHeight.value,
     // Make item invisible when dragging, but keep it in layout
     opacity: isDragging ? 0 : 1,

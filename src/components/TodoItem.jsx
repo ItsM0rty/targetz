@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { 
   useAnimatedStyle, 
-  withSpring, 
+  withTiming,
+  Easing,
   interpolate, 
   useDerivedValue
 } from 'react-native-reanimated';
@@ -33,20 +34,25 @@ export const TodoItem = React.memo(({
   const { colors } = useTheme();
   
   // 1. ANIMATION DRIVER
+  // Premium bezier easing for smooth, natural lift effect
+  // Matches the drag animation timing for cohesive feel
+  const LIFT_EASING = Easing.bezier(0.34, 1.56, 0.64, 1); // Slight overshoot for premium feel
+  const LIFT_DURATION = 220; // Slightly longer for lift to feel more deliberate
+
   // We drive the animation purely off the boolean 'isActive'
   const activeValue = useDerivedValue(() => {
-    return withSpring(isActive ? 1 : 0, {
-      damping: 15,
-      stiffness: 120, // Softer spring prevents jerky "snap"
+    return withTiming(isActive ? 1 : 0, {
+      duration: LIFT_DURATION,
+      easing: LIFT_EASING,
     });
   }, [isActive]);
 
   // 2. THE "LIFT" EFFECT
-  // Instead of scaling > 1 (clipping risk), we maintain scale 1 but increase elevation
-  // and slightly shrink opacity to give a "ghost" effect
+  // Premium lift effect with enhanced visual feedback for active drag state
+  // Subtle scale and elevation create a premium, polished feel
   const rContainerStyle = useAnimatedStyle(() => {
-    const scale = interpolate(activeValue.value, [0, 1], [1, 1.02]);
-    const yOffset = interpolate(activeValue.value, [0, 1], [0, -5]);
+    const scale = interpolate(activeValue.value, [0, 1], [1, 1.05]);
+    const yOffset = interpolate(activeValue.value, [0, 1], [0, -7]);
     
     return {
       transform: [
@@ -54,7 +60,7 @@ export const TodoItem = React.memo(({
         { translateY: yOffset }
       ],
       zIndex: isActive ? 999 : 1, // Force to top
-      shadowOpacity: interpolate(activeValue.value, [0, 1], [0, 0.3]),
+      shadowOpacity: interpolate(activeValue.value, [0, 1], [0, 0.4]),
     };
   });
 
