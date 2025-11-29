@@ -22,8 +22,9 @@ const SPACING_FACTOR = 0.52;
 
 /**
  * Wrapper component for static items (like add button) that need to respond to drag animations
+ * The add button is always the last item, so it uses marginTop to affect layout
  */
-const DraggableStaticItem = ({ children, index }) => {
+const DraggableStaticItem = ({ children, index, isLastItem = false }) => {
   const {
     dragY,
     draggingItemId,
@@ -34,8 +35,9 @@ const DraggableStaticItem = ({ children, index }) => {
     hasMovedThreshold,
   } = useDraggingContext();
 
-  // Use translateY instead of marginTop for better GPU acceleration and smoother animations
+  // Premium conditional animation: last item (add button) uses marginTop to affect layout
   const translateY = useSharedValue(0);
+  const marginTop = useSharedValue(0);
 
   useAnimatedReaction(
     () => ({
@@ -53,6 +55,10 @@ const DraggableStaticItem = ({ children, index }) => {
           duration: ANIMATION_DURATION,
           easing: PREMIUM_EASING,
         });
+        marginTop.value = withTiming(0, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
+        });
         return;
       }
 
@@ -60,27 +66,42 @@ const DraggableStaticItem = ({ children, index }) => {
       const targetIndex = Math.max(0, Math.floor((values.dragPosition - values.header) / values.rowHeight));
       const originalIndex = values.originalDragIndex;
 
-      // Shift down if at or below target position (same logic as DraggableTodoItem)
-      // Using transform translateY for GPU acceleration and smoother performance
-      if (index >= targetIndex && index !== originalIndex) {
-        const shiftDistance = values.rowHeight * SPACING_FACTOR;
-        translateY.value = withTiming(shiftDistance, {
+      // Premium conditional animation: add button (last item) uses marginTop to affect layout
+      const shouldShift = index >= targetIndex && index !== originalIndex;
+      const shiftDistance = shouldShift ? values.rowHeight * SPACING_FACTOR : 0;
+
+      if (isLastItem && shouldShift) {
+        // Last item (add button): use marginTop to affect layout and push footer down
+        marginTop.value = withTiming(shiftDistance, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
+        });
+        translateY.value = withTiming(0, {
           duration: ANIMATION_DURATION,
           easing: PREMIUM_EASING,
         });
       } else {
-        translateY.value = withTiming(0, {
+        // Placeholders: use transform for better performance
+        translateY.value = withTiming(shiftDistance, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
+        });
+        marginTop.value = withTiming(0, {
           duration: ANIMATION_DURATION,
           easing: PREMIUM_EASING,
         });
       }
     },
-    [index, draggingItemId, draggingItemIndex]
+    [index, draggingItemId, draggingItemIndex, isLastItem]
   );
 
   const animatedStyle = useAnimatedStyle(() => ({
-    // Use transform instead of marginTop for better performance and smoother animations
+    // Premium conditional animation:
+    // - Last item (add button) uses marginTop when shifting (affects layout)
+    // - Placeholders use transform (better performance)
+    // Both animations use the same timing for consistent, polished feel
     transform: [{ translateY: translateY.value }],
+    marginTop: marginTop.value,
   }));
 
   return (

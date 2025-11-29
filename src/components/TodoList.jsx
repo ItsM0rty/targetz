@@ -88,11 +88,16 @@ export const TodoList = ({
   const ListBody = () => {
     const { dragOffsetY, setHeaderHeight } = useDraggingContext();
 
+    // Calculate total count of actual todos (excluding placeholders and add button)
+    const totalTodosCount = useMemo(() => {
+      return enhancedData.filter(item => item.itemType === 'todo').length;
+    }, [enhancedData]);
+
     const renderItem = useCallback(
       ({ item, index }) => {
         if (item.itemType === 'add-button') {
           return (
-            <DraggableStaticItem index={index}>
+            <DraggableStaticItem index={index} isLastItem={true}>
               <View style={styles.staticRow}>
                 <AddTargetButton number={item.priority} onPress={onAddPress} />
               </View>
@@ -102,7 +107,7 @@ export const TodoList = ({
 
         if (item.itemType === 'placeholder') {
           return (
-            <DraggableStaticItem index={index}>
+            <DraggableStaticItem index={index} isLastItem={false}>
               <View style={styles.staticRow}>
                 <PlaceholderItem number={item.priority} />
               </View>
@@ -110,15 +115,19 @@ export const TodoList = ({
           );
         }
 
+        // Check if this is the last todo item (before any extras)
+        const isLastTodo = index === totalTodosCount - 1;
+
         return (
           <DraggableTodoItem
             todo={item}
             index={index}
             onToggle={onToggle}
+            isLastTodo={isLastTodo}
           />
         );
       },
-      [onAddPress, onToggle]
+      [onAddPress, onToggle, totalTodosCount]
     );
 
     const handleScroll = useCallback(

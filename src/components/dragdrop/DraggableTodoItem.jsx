@@ -21,7 +21,7 @@ const ANIMATION_DURATION = 200;
 // spacious enough to clearly indicate insertion point
 const SPACING_FACTOR = 0.52;
 
-const DraggableTodoItem = ({ todo, index, onToggle }) => {
+const DraggableTodoItem = ({ todo, index, onToggle, isLastTodo = false }) => {
   const {
     setDraggingTask,
     dragY,
@@ -34,8 +34,10 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
     hasMovedThreshold,
   } = useDraggingContext();
 
-  // Use translateY instead of marginTop for better GPU acceleration and smoother animations
+  // Premium conditional animation: use marginTop for last item when shifting (affects layout),
+  // transform for all other items (better performance)
   const translateY = useSharedValue(0);
+  const marginTop = useSharedValue(0);
 
   useAnimatedReaction(
     () => ({
@@ -48,9 +50,13 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
       hasMoved: hasMovedThreshold?.value ?? false,
     }),
     (values) => {
-      // Don't animate translateY for the item being dragged
+      // Don't animate for the item being dragged
       if (values.isDraggingThis) {
         translateY.value = withTiming(0, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
+        });
+        marginTop.value = withTiming(0, {
           duration: ANIMATION_DURATION,
           easing: PREMIUM_EASING,
         });
@@ -63,6 +69,10 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
           duration: ANIMATION_DURATION,
           easing: PREMIUM_EASING,
         });
+        marginTop.value = withTiming(0, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
+        });
         return;
       }
       
@@ -71,34 +81,45 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
       const targetIndex = Math.max(0, Math.floor((values.dragPosition - values.header) / values.rowHeight));
       const originalIndex = values.originalDragIndex;
       
-      // Premium drag-and-drop animation:
-      // Items at or below the target index shift DOWN to make space (except the original item)
-      // Items above the target index don't shift
-      // Using transform translateY for GPU acceleration and smoother performance
+      // Premium conditional drag-and-drop animation:
+      // - Last item uses marginTop when shifting (affects layout, prevents footer overlap)
+      // - All other items use transform translateY (better GPU performance)
+      // - Items at or below the target index shift DOWN to make space (except the original item)
       
-      if (index >= targetIndex && index !== originalIndex) {
-        // This item is at or below the target position (and not the original) - shift it down
-        const shiftDistance = values.rowHeight * SPACING_FACTOR;
-        translateY.value = withTiming(shiftDistance, {
+      const shouldShift = index >= targetIndex && index !== originalIndex;
+      const shiftDistance = shouldShift ? values.rowHeight * SPACING_FACTOR : 0;
+      
+      if (isLastTodo && shouldShift) {
+        // Last item: use marginTop to affect layout and push footer down
+        marginTop.value = withTiming(shiftDistance, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
+        });
+        translateY.value = withTiming(0, {
           duration: ANIMATION_DURATION,
           easing: PREMIUM_EASING,
         });
       } else {
-        // This item is above the target position or is the original - no shift needed
-        translateY.value = withTiming(0, {
+        // All other items: use transform for better performance
+        translateY.value = withTiming(shiftDistance, {
+          duration: ANIMATION_DURATION,
+          easing: PREMIUM_EASING,
+        });
+        marginTop.value = withTiming(0, {
           duration: ANIMATION_DURATION,
           easing: PREMIUM_EASING,
         });
       }
     },
-    [index, todo.id, draggingItemId, draggingItemIndex]
+    [index, todo.id, draggingItemId, draggingItemIndex, isLastTodo]
   );
 
   useEffect(() => {
     if (!draggingItemId) {
       translateY.value = 0;
+      marginTop.value = 0;
     }
-  }, [draggingItemId, translateY]);
+  }, [draggingItemId, translateY, marginTop]);
 
   const handleLongPress = useCallback(() => {
     setDraggingTask(todo, index);
@@ -115,8 +136,12 @@ const DraggableTodoItem = ({ todo, index, onToggle }) => {
   const isDragging = draggingItemId === todo.id;
 
   const rowStyle = useAnimatedStyle(() => ({
-    // Use transform instead of marginTop for better performance and smoother animations
+    // Premium conditional animation:
+    // - Last item uses marginTop when shifting (affects layout)
+    // - All other items use transform (better performance)
+    // Both animations use the same timing for consistent, polished feel
     transform: [{ translateY: translateY.value }],
+    marginTop: marginTop.value,
     height: itemHeight.value,
     // Make item invisible when dragging, but keep it in layout
     opacity: isDragging ? 0 : 1,
