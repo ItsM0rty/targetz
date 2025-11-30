@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/theme/useTheme';
@@ -205,7 +205,11 @@ export default function HomeScreen() {
       <View style={styles.listHeader}>
         {/* App Title Bar - Perplexity style */}
         <View style={[styles.appHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.appTitle, { color: colors.text }]}>Targetz</Text>
+          <Image 
+            source={require('../assets/header.png')} 
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
           <TouchableOpacity 
             onPress={() => router.push('/settings')} 
             style={[styles.settingsButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
@@ -324,12 +328,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     marginBottom: 4,
+    marginTop: -15,
   },
   appTitle: {
     fontSize: 28,
     fontWeight: '600',
     letterSpacing: -0.5,
   },
+  headerLogo: {
+    height: 75,
+    width: 150,
+    marginBottom: -10,
+    marginLeft: 5,
+    
+    },
   settingsButton: {
     width: 40,
     height: 40,
@@ -337,6 +349,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 25,
   },
   settingsIcon: {
     fontSize: 18,

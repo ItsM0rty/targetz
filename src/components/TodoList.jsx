@@ -32,21 +32,31 @@ export const TodoList = ({
     const extras = [];
 
     if (todos.length === 0) {
+      // When there are no todos, add button should be first (#1)
+      if (onAddPress) {
+        extras.push({
+          id: 'add-button',
+          priority: 1,
+          itemType: 'add-button',
+        });
+      }
+      // Then add placeholders for positions #2 and #3
       for (let i = 0; i < 2; i += 1) {
         extras.push({
           id: `placeholder-${i}`,
-          priority: i + 1,
+          priority: i + 2, // priorities 2 and 3
           itemType: 'placeholder',
         });
       }
-    }
-
-    if (onAddPress) {
-      extras.push({
-        id: 'add-button',
-        priority: (todos[todos.length - 1]?.priority ?? 0) + 1,
-        itemType: 'add-button',
-      });
+    } else {
+      // When there are todos, add button goes after them
+      if (onAddPress) {
+        extras.push({
+          id: 'add-button',
+          priority: (todos[todos.length - 1]?.priority ?? 0) + 1,
+          itemType: 'add-button',
+        });
+      }
     }
 
     return [...todos, ...extras];
