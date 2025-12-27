@@ -219,7 +219,7 @@ export default function HomeScreen() {
         </View>
         
         {/* Separate Date Header */}
-        <DateHeader selectedDate={selectedDate} />
+        <DateHeader selectedDate={selectedDate}  />
         
         {/* Spacing between date navigator and target list */}
         <View style={styles.listSpacing} />
@@ -318,9 +318,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   listHeader: {
-    paddingBottom: 16,
+    marginBottom: -30,
     width: '100%',
+    paddingLeft: 20,
   },
+
   appHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -329,6 +331,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     marginBottom: 4,
     marginTop: -15,
+    marginLeft: -20,
   },
   appTitle: {
     fontSize: 28,
