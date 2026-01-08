@@ -25,8 +25,6 @@ const buildDays = (count = 5) => {
     let label;
     if (index === 0) {
       label = 'Today';
-    } else if (index === 1) {
-      label = 'Tomorrow';
     } else {
       label = date.toLocaleDateString(undefined, { weekday: 'short' });
     }

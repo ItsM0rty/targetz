@@ -19,7 +19,7 @@ const getDueDateLabel = (dateMs) => {
   const diff = (d.getTime() - now.getTime()) / (1000 * 3600 * 24);
   
   if (diff === 0) return 'Today';
-  if (diff === 1) return 'Tomorrow';
+  if (diff === 1) return d.toLocaleDateString(undefined, { weekday: 'short' });
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
@@ -118,9 +118,6 @@ export const TodoItem = React.memo(({
                   ]}
                 >
                   {todo.title}
-                </Text>
-                <Text style={[styles.date, { color: colors.textSecondary }]}>
-                  {getDueDateLabel(todo.dueDate)}
                 </Text>
               </View>
 

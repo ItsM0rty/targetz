@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/theme/useTheme';
 import { useSettingsStore } from '../src/stores/settingsStore';
 import { shallow } from 'zustand/shallow';
@@ -46,20 +47,20 @@ export default function SettingsScreen() {
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradient}>
       <SafeAreaView style={[styles.container, { paddingTop: insets.top + 12 }]} edges={['top', 'left', 'right']}>
-        <BlurView tint={isDark ? 'dark' : 'light'} intensity={45} style={[styles.header, { backgroundColor: colors.surface }]}> 
-          <Pressable 
-            delayPressIn={0}
-            delayPressOut={0}
-            onPress={handleBack} 
-            style={({ pressed }) => [
-              styles.headerButton, 
-              { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }
-            ]}
-          > 
-            <Text style={[styles.backButton, { color: colors.accent }]}>← Back</Text>
-          </Pressable>
-          <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
-        </BlurView>
+          <BlurView tint={isDark ? 'dark' : 'light'} intensity={45} style={[styles.header, { backgroundColor: colors.surface }]}> 
+            <Pressable 
+              delayPressIn={0}
+              delayPressOut={0}
+              onPress={handleBack} 
+              style={({ pressed }) => [
+                styles.headerButton, 
+                { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }
+              ]}
+            > 
+              <Ionicons name="chevron-back" size={20} color={colors.accent} />
+            </Pressable>
+            <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+          </BlurView>
         
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Appearance Section */}
@@ -239,19 +240,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 20,
     borderWidth: 1,
     marginBottom: 24,
+    position: 'relative',
   },
   headerButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    position: 'absolute',
+    left: 20,
+    width: 36,
+    height: 36,
     borderRadius: 12,
     borderWidth: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButton: {
     fontSize: 14,
@@ -261,6 +267,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     letterSpacing: 0.6,
+    textAlign: 'center',
   },
   content: {
     paddingBottom: 120,

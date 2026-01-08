@@ -68,7 +68,12 @@ export default function RootLayout() {
               },
             }}
           />
-          <Stack.Screen name="settings" />
+          <Stack.Screen 
+            name="settings" 
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
         </Stack>
         <StatusBar style={isDark ? 'light' : 'dark'} />
       </SafeAreaProvider>
