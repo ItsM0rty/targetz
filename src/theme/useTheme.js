@@ -1,18 +1,32 @@
+import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { colors } from './colors';
 
+// Memoize colors objects to prevent recreation on every render
+const colorsCache = {
+  light: colors.light,
+  dark: colors.dark,
+};
+
 export function useTheme() {
   const systemColorScheme = useColorScheme();
-  const { theme } = useSettingsStore();
+  // Use selector to only subscribe to theme changes, not entire store
+  const theme = useSettingsStore((state) => state.theme);
   
-  const effectiveTheme =
-    theme === 'system' ? (systemColorScheme === 'dark' ? 'dark' : 'light') : theme;
+  const effectiveTheme = useMemo(
+    () => (theme === 'system' ? (systemColorScheme === 'dark' ? 'dark' : 'light') : theme),
+    [theme, systemColorScheme]
+  );
   
-  return {
-    colors: colors[effectiveTheme],
-    isDark: effectiveTheme === 'dark',
-    theme: effectiveTheme,
-  };
+  // Return memoized values to prevent unnecessary re-renders
+  return useMemo(
+    () => ({
+      colors: colorsCache[effectiveTheme],
+      isDark: effectiveTheme === 'dark',
+      theme: effectiveTheme,
+    }),
+    [effectiveTheme]
+  );
 }
 

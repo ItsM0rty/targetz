@@ -17,7 +17,8 @@ import { Text, TextInput } from 'react-native';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { loadSettings } = useSettingsStore();
+  // Use selector to prevent re-renders on unrelated store changes
+  const loadSettings = useSettingsStore((state) => state.loadSettings);
   const { isDark } = useTheme();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,

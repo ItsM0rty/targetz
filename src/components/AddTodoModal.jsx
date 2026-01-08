@@ -33,7 +33,9 @@ const getInitialOption = (targetDate) => {
 
 export const AddTodoModal = ({ visible, onClose, initialDate }) => {
   const { colors, isDark } = useTheme();
-  const { todos, addTodo } = useTodoStore();
+  // Use selective subscriptions to prevent re-renders on unrelated store changes
+  const todos = useTodoStore((state) => state.todos);
+  const addTodo = useTodoStore((state) => state.addTodo);
   const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState(startOfDay(initialDate || Date.now()));
   const [selectedOption, setSelectedOption] = useState('today');

@@ -68,17 +68,21 @@ const TodoDragArea = ({
     })
     .onStart((event) => {
       // Capture initial touch position when drag starts
-      initialTouchY.value = event.y;
+      // Use absoluteY if available (screen coordinates), otherwise use relative y
+      // absoluteY is the screen Y coordinate, which is what we need
+      initialTouchY.value = event.absoluteY ?? event.y;
       hasMovedThreshold.value = false;
     })
     .onChange((event) => {
       dragX.value = dragX.value + event.changeX;
-      // Calculate absolute Y position: initial item position + touch movement
-      const newY = initialItemY.value + (event.y - initialTouchY.value);
+      // Use absoluteY if available (screen coordinates), otherwise calculate from relative movement
+      // If absoluteY is available, use it directly; otherwise use relative movement
+      const currentTouchY = event.absoluteY ?? (initialTouchY.value + (event.y - initialTouchY.value));
+      const newY = initialItemY.value + (currentTouchY - initialTouchY.value);
       dragY.value = newY;
       
       // Check if drag has moved enough to trigger animations (threshold: 1/3 of item height)
-      const movementY = Math.abs(event.y - initialTouchY.value);
+      const movementY = Math.abs(currentTouchY - initialTouchY.value);
       const threshold = itemHeight.value / 3;
       if (movementY > threshold) {
         hasMovedThreshold.value = true;
@@ -93,14 +97,17 @@ const TodoDragArea = ({
       hasMovedThreshold.value = false;
     });
 
-  const setDraggingTask = (item, index) => {
+  const setDraggingTask = (item, index, measuredY) => {
     if (!item) {
       return;
     }
     setDraggingItem(item);
     setDraggingItemIndex(index);
-    // Calculate absolute Y position of the item (accounting for header and scroll)
-    const absoluteY = listOffset.value + index * itemHeight.value;
+    // Use measured screen position if available (most accurate), otherwise calculate
+    // measuredY is the absolute screen Y position from measure() callback
+    const absoluteY = measuredY !== undefined 
+      ? measuredY 
+      : listOffset.value + index * itemHeight.value + dragOffsetY.value;
     initialItemY.value = absoluteY;
     dragY.value = absoluteY;
     dragX.value = 20;
@@ -124,8 +131,11 @@ const TodoDragArea = ({
   };
 
   const animatedStyle = useAnimatedStyle(() => {
+    // dragY is already the absolute screen position (includes scroll offset)
+    // Since we're using position: 'absolute' in a StyleSheet.absoluteFill container,
+    // top should be the absolute screen position, not relative to scroll
     return {
-      top: dragY.value - dragOffsetY.value,
+      top: dragY.value,
       left: dragX.value,
       height: itemHeight.value,
     };

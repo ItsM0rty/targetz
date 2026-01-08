@@ -5,6 +5,12 @@ import { useTheme } from '../theme/useTheme';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
+const getScreenWidth = () => Dimensions.get('window').width;
+const CARD_GAP = 10; // Gap between cards
+const ADD_BUTTON_WIDTH = 80; // More compact add button
+const DAYS_COUNT = 6;
+const MIN_PADDING = 20; // Minimum horizontal padding
+
 const startOfDay = (timestamp = Date.now()) => {
   const date = new Date(timestamp);
   date.setHours(0, 0, 0, 0);
@@ -33,7 +39,7 @@ const buildDays = (count = 5) => {
   });
 };
 
-export const CalendarCarousel = ({ selectedDate, onSelectDate, onAddPress }) => {
+export const CalendarCarousel = React.memo(({ selectedDate, onSelectDate, onAddPress }) => {
   const { colors } = useTheme();
   const days = useMemo(() => buildDays(6), []);
   const selectedDay = startOfDay(selectedDate);
@@ -111,13 +117,7 @@ export const CalendarCarousel = ({ selectedDate, onSelectDate, onAddPress }) => 
       </TouchableOpacity>
     </ScrollView>
   );
-};
-
-const getScreenWidth = () => Dimensions.get('window').width;
-const CARD_GAP = 10; // Gap between cards
-const ADD_BUTTON_WIDTH = 80; // More compact add button
-const DAYS_COUNT = 6;
-const MIN_PADDING = 20; // Minimum horizontal padding
+});
 
 const styles = StyleSheet.create({
   scrollView: {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { 
   useAnimatedStyle, 
@@ -8,7 +8,6 @@ import Animated, {
   useDerivedValue
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useTheme } from '../theme/useTheme';
 
 // Helper to simplify Date logic
@@ -32,6 +31,14 @@ export const TodoItem = React.memo(({
   onToggle 
 }) => {
   const { colors } = useTheme();
+  
+  // Memoize gradient colors to prevent recreation
+  const gradientColors = useMemo(() => {
+    const isHighlighted = index === 0 && !todo.done && !isActive;
+    return isHighlighted 
+      ? [colors.accent, colors.accentSecondary] 
+      : [`${colors.accent}20`, colors.border];
+  }, [index, todo.done, isActive, colors.accent, colors.accentSecondary, colors.border]);
   
   // 1. ANIMATION DRIVER
   // Premium bezier easing for smooth, natural lift effect
@@ -85,13 +92,12 @@ export const TodoItem = React.memo(({
           ]}
         >
           <LinearGradient
-             colors={isHighlighted 
-               ? [colors.accent, colors.accentSecondary] 
-               : [`${colors.accent}20`, `${colors.border}`]}
+             colors={gradientColors}
              start={{x: 0, y: 0}} end={{x: 1, y: 1}}
              style={styles.gradientBorder}
           >
-            <BlurView intensity={20} tint="dark" style={[styles.blurContent, { backgroundColor: colors.surface }]}>
+            {/* Replaced BlurView with View for better performance */}
+            <View style={[styles.content, { backgroundColor: colors.surface }]}>
               
               {/* Priority Pill */}
               <View style={styles.pill}>
@@ -108,7 +114,7 @@ export const TodoItem = React.memo(({
                   style={[
                     styles.title, 
                     todo.done && { textDecorationLine: 'line-through', color: colors.textSecondary },
-                    { color: isHighlighted ? '#000' : colors.text }
+                    { color: isHighlighted ? '#FFFFFF' : colors.text }
                   ]}
                 >
                   {todo.title}
@@ -118,7 +124,7 @@ export const TodoItem = React.memo(({
                 </Text>
               </View>
 
-            </BlurView>
+            </View>
           </LinearGradient>
         </Pressable>
       </Animated.View>
@@ -153,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: '100%',
   },
-  blurContent: {
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,

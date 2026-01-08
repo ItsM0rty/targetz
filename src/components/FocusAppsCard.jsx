@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../theme/useTheme';
 import { useSettingsStore } from '../stores/settingsStore';
+import { shallow } from 'zustand/shallow';
 
 const AVAILABLE_APPS = [
   { id: 'instagram', name: 'Instagram', package: 'com.instagram.android', icon: '📸' },
@@ -70,12 +71,16 @@ const AppSelectionModal = ({ visible, onClose, onSelect, selectedApps, isPaid })
 
 export const FocusAppsCard = () => {
   const { colors } = useTheme();
-  const {
-    mode,
-    monitoredApps,
-    addMonitoredApp,
-    removeMonitoredApp,
-  } = useSettingsStore();
+  // Use shallow comparison to prevent re-renders on unrelated store changes
+  const { mode, monitoredApps, addMonitoredApp, removeMonitoredApp } = useSettingsStore(
+    (state) => ({
+      mode: state.mode,
+      monitoredApps: state.monitoredApps,
+      addMonitoredApp: state.addMonitoredApp,
+      removeMonitoredApp: state.removeMonitoredApp,
+    }),
+    shallow
+  );
 
   const [pickerVisible, setPickerVisible] = useState(false);
 

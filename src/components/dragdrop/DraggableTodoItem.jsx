@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
@@ -121,8 +121,20 @@ const DraggableTodoItem = ({ todo, index, onToggle, isLastTodo = false }) => {
     }
   }, [draggingItemId, translateY, marginTop]);
 
+  const itemRef = useRef(null);
+
   const handleLongPress = useCallback(() => {
-    setDraggingTask(todo, index);
+    // Measure the actual screen position of the item when drag starts
+    // This ensures correct positioning regardless of scroll position
+    if (itemRef.current) {
+      itemRef.current.measure((x, y, width, height, pageX, pageY) => {
+        // pageY is the absolute screen position
+        setDraggingTask(todo, index, pageY);
+      });
+    } else {
+      // Fallback to calculated position if measure fails
+      setDraggingTask(todo, index);
+    }
   }, [index, setDraggingTask, todo]);
 
   const handleLayout = useCallback(
@@ -148,15 +160,17 @@ const DraggableTodoItem = ({ todo, index, onToggle, isLastTodo = false }) => {
   }));
 
   return (
-    <Animated.View style={[styles.row, rowStyle]} onLayout={handleLayout}>
-      <TodoItem
-        todo={todo}
-        index={index}
-        isActive={isDragging}
-        onLongPress={handleLongPress}
-        onToggle={() => onToggle(todo.id)}
-      />
-    </Animated.View>
+    <View ref={itemRef} collapsable={false}>
+      <Animated.View style={[styles.row, rowStyle]} onLayout={handleLayout}>
+        <TodoItem
+          todo={todo}
+          index={index}
+          isActive={isDragging}
+          onLongPress={handleLongPress}
+          onToggle={() => onToggle(todo.id)}
+        />
+      </Animated.View>
+    </View>
   );
 };
 

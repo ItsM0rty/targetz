@@ -5,6 +5,10 @@ import { createStorage } from '../utils/storage';
 // Use AsyncStorage-based adapter (works reliably in Expo, fast with in-memory cache)
 const storage = createStorage('settings');
 
+// Debounce storage writes to batch operations and prevent blocking
+let saveTimeout = null;
+const DEBOUNCE_DELAY = 100; // 100ms debounce
+
 export const useSettingsStore = create((set, get) => ({
   theme: Appearance.getColorScheme() === 'dark' ? 'dark' : 'light',
   mode: 'free',
@@ -37,26 +41,37 @@ export const useSettingsStore = create((set, get) => ({
   },
   
   saveSettings: () => {
-    try {
-      const { theme, mode, monitoredApps, timeBasedInterval, appDetectionEnabled } = get();
-      // Use sync set for performance (updates cache immediately, writes async in background)
-      storage.setSync('theme', theme);
-      storage.setSync('mode', mode);
-      storage.setSync('monitoredApps', JSON.stringify(monitoredApps));
-      storage.setSync('timeBasedInterval', timeBasedInterval);
-      storage.setSync('appDetectionEnabled', appDetectionEnabled);
-    } catch (error) {
-      console.error('Failed to save settings:', error);
+    // Clear existing timeout to debounce rapid changes
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
     }
+    
+    // Debounce the actual write to batch rapid changes
+    saveTimeout = setTimeout(() => {
+      try {
+        const { theme, mode, monitoredApps, timeBasedInterval, appDetectionEnabled } = get();
+        // Use sync set for performance (updates cache immediately, writes async in background)
+        storage.setSync('theme', theme);
+        storage.setSync('mode', mode);
+        storage.setSync('monitoredApps', JSON.stringify(monitoredApps));
+        storage.setSync('timeBasedInterval', timeBasedInterval);
+        storage.setSync('appDetectionEnabled', appDetectionEnabled);
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+      }
+      saveTimeout = null;
+    }, DEBOUNCE_DELAY);
   },
   
   setTheme: (theme) => {
     set({ theme });
+    // Save immediately but non-blocking (setSync updates cache, writes async in background)
     get().saveSettings();
   },
   
   setMode: (mode) => {
     set({ mode });
+    // Save immediately but non-blocking (setSync updates cache, writes async in background)
     get().saveSettings();
   },
   

@@ -15,11 +15,13 @@ import { requestNotificationPermissions, scheduleTimeBasedReminder } from '../sr
 import { startAppMonitoring, stopAppMonitoring } from '../src/utils/appMonitoring';
 import { Settings as ReanimatedSettings } from 'react-native-reanimated';
 
+// Disable synchronous updates for better performance - this was causing button lag
+// Synchronous updates block the UI thread and delay touch responses
 if (ReanimatedSettings?.androidSynchronouslyUpdateUIProps !== undefined && Platform.OS === 'android') {
-  ReanimatedSettings.androidSynchronouslyUpdateUIProps = true;
+  ReanimatedSettings.androidSynchronouslyUpdateUIProps = false;
 }
 if (ReanimatedSettings?.iosSynchronouslyUpdateUIProps !== undefined && Platform.OS === 'ios') {
-  ReanimatedSettings.iosSynchronouslyUpdateUIProps = true;
+  ReanimatedSettings.iosSynchronouslyUpdateUIProps = false;
 }
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -38,7 +40,7 @@ const formatLongDate = (timestamp) => {
   });
 };
 
-const ReminderControls = ({
+const ReminderControls = React.memo(({
   appDetectionEnabled,
   onToggleDetection,
   timeBasedInterval,
@@ -89,7 +91,7 @@ const ReminderControls = ({
       </View>
     </View>
   );
-};
+});
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
@@ -101,13 +103,13 @@ export default function HomeScreen() {
   const reorderTodosForDate = useTodoStore((state) => state.reorderTodosForDate);
   const todosVersion = useTodoStore((state) => state.todosVersion);
   
-  const {
-    loadSettings,
-    timeBasedInterval,
-    appDetectionEnabled,
-    setAppDetectionEnabled,
-    setTimeBasedInterval,
-  } = useSettingsStore();
+  // Use selective subscriptions to prevent re-renders on unrelated store changes
+  // This fixes the delay when switching themes/modes in settings
+  const loadSettings = useSettingsStore((state) => state.loadSettings);
+  const timeBasedInterval = useSettingsStore((state) => state.timeBasedInterval);
+  const appDetectionEnabled = useSettingsStore((state) => state.appDetectionEnabled);
+  const setAppDetectionEnabled = useSettingsStore((state) => state.setAppDetectionEnabled);
+  const setTimeBasedInterval = useSettingsStore((state) => state.setTimeBasedInterval);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalDate, setModalDate] = useState(startOfDay());
@@ -131,10 +133,19 @@ export default function HomeScreen() {
     [getSeparatedTodosForDate, todosVersion]
   );
 
-  // Optimized: cached lookup with prefetched neighbors
+  // Calculate tasks synchronously for immediate updates when date changes
+  // This ensures the list updates immediately when switching dates
   const tasksForSelectedDay = useMemo(
-    () => hydrateCache(selectedDate),
-    [selectedDate, hydrateCache]
+    () => {
+      // Force immediate calculation - don't rely on cache for selected date
+      const normalized = startOfDay(selectedDate);
+      const { incomplete, completed } = getSeparatedTodosForDate(normalized);
+      const merged = [...incomplete, ...completed];
+      // Update cache for future use
+      dateCacheRef.current.set(normalized, { version: todosVersion, data: merged });
+      return merged;
+    },
+    [selectedDate, getSeparatedTodosForDate, todosVersion]
   );
 
   useEffect(() => {
@@ -200,6 +211,22 @@ export default function HomeScreen() {
     [reorderTodosForDate, selectedDate]
   );
 
+  // Stable callback for date selection - prevents CalendarCarousel re-renders
+  const handleDateSelect = useCallback((dateValue) => {
+    setSelectedDate(dateValue);
+  }, []);
+
+  // Stable callback for interval changes - prevents ReminderControls re-renders
+  const handleIntervalChange = useCallback((minutes) => {
+    setTimeBasedInterval(minutes);
+    scheduleTimeBasedReminder(minutes);
+  }, [setTimeBasedInterval]);
+
+  // Stable callback for add press - prevents CalendarCarousel re-renders
+  const handleAddPress = useCallback(() => {
+    openModalForDate(selectedDate);
+  }, [openModalForDate, selectedDate]);
+
   const headerComponent = useMemo(
     () => (
       <View style={styles.listHeader}>
@@ -241,8 +268,8 @@ export default function HomeScreen() {
         <View style={styles.calendarSectionWrapper}>
           <CalendarCarousel
             selectedDate={selectedDate}
-            onSelectDate={(dateValue) => setSelectedDate(dateValue)}
-            onAddPress={() => openModalForDate(selectedDate)}
+            onSelectDate={handleDateSelect}
+            onAddPress={handleAddPress}
           />
         </View>
 
@@ -260,10 +287,7 @@ export default function HomeScreen() {
               appDetectionEnabled={appDetectionEnabled}
               onToggleDetection={handleToggleDetection}
               timeBasedInterval={timeBasedInterval}
-              onChangeInterval={(minutes) => {
-                setTimeBasedInterval(minutes);
-                scheduleTimeBasedReminder(minutes);
-              }}
+              onChangeInterval={handleIntervalChange}
             />
           </View>
         </View>
@@ -273,12 +297,12 @@ export default function HomeScreen() {
     ),
     [
       selectedDate,
-      openModalForDate,
+      handleDateSelect,
+      handleAddPress,
       appDetectionEnabled,
       handleToggleDetection,
       timeBasedInterval,
-      setTimeBasedInterval,
-      scheduleTimeBasedReminder,
+      handleIntervalChange,
       insets.bottom,
     ]
   );
@@ -287,6 +311,7 @@ export default function HomeScreen() {
     <View style={[styles.gradient, { backgroundColor: colors.background }]}>
       <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
         <TodoList
+          key={`todo-list-${selectedDate}`}
           data={tasksForSelectedDay}
           onToggle={toggleTodo}
           onAddPress={() => openModalForDate(selectedDate)}

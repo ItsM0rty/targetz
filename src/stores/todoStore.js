@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { InteractionManager } from 'react-native';
 import { createStorage } from '../utils/storage';
 
 // Use AsyncStorage-based adapter (works reliably in Expo, fast with in-memory cache)
@@ -132,19 +131,12 @@ const schedulePersist = (get) => {
 
   saveTimer = setTimeout(() => {
     const todosToPersist = get().todos;
-    const runPersist = () => {
-      try {
-        // Use sync set for performance (updates cache immediately, writes async in background)
-        storage.setSync('todos', JSON.stringify(todosToPersist));
-      } catch (error) {
-        console.error('Failed to save todos:', error);
-      }
-    };
-
-    if (InteractionManager?.runAfterInteractions) {
-      InteractionManager.runAfterInteractions(runPersist);
-    } else {
-      runPersist();
+    try {
+      // Use sync set for performance (updates cache immediately, writes async in background)
+      // Removed InteractionManager delay - debounce is sufficient
+      storage.setSync('todos', JSON.stringify(todosToPersist));
+    } catch (error) {
+      console.error('Failed to save todos:', error);
     }
   }, SAVE_DEBOUNCE_MS);
 };
@@ -306,20 +298,38 @@ export const useTodoStore = create((set, get) => ({
 
       const todo = state.todos[index];
       const newDoneState = !todo.done;
-      const targetDate = startOfDay(todo.dueDate);
+      const dateKey = getDateKey(todo.dueDate);
       
-      // Update the todo
+      // Update the todo immediately for instant UI feedback
       const updatedTodo = { ...todo, done: newDoneState };
       const updatedTodos = state.todos.map((t) => t.id === id ? updatedTodo : t);
       
-      // Rebuild priorities
-      const normalizedTodos = recalcPriorities(updatedTodos);
+      // Minimal update to dateMap - only update the affected date bucket
+      // This is much faster than rebuilding the entire map
+      const newDateMap = new Map(state.todosByDate);
+      const bucket = newDateMap.get(dateKey) || cloneBucket(emptyDate);
       
-      // Rebuild the separated arrays map
-      const newDateMap = buildDateMap(normalizedTodos);
+      // Remove from both arrays
+      const nextBucket = {
+        incomplete: bucket.incomplete.filter((t) => t.id !== id),
+        completed: bucket.completed.filter((t) => t.id !== id),
+      };
+      
+      // Add to the correct array, maintaining priority order
+      if (newDoneState) {
+        nextBucket.completed = [...nextBucket.completed, updatedTodo].sort((a, b) => a.priority - b.priority);
+      } else {
+        nextBucket.incomplete = [...nextBucket.incomplete, updatedTodo].sort((a, b) => a.priority - b.priority);
+      }
+      
+      newDateMap.set(dateKey, nextBucket);
+      
+      // Note: We don't need to recalc priorities when toggling done state
+      // Priorities only change when items are reordered, not when they're marked done/undone
+      // This saves significant computation time
       
       return {
-        todos: normalizedTodos,
+        todos: updatedTodos,
         todosByDate: newDateMap,
         todosVersion: state.todosVersion + 1,
       };

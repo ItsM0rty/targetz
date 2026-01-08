@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -12,65 +12,57 @@ import { BlurView } from 'expo-blur';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/theme/useTheme';
 import { useSettingsStore } from '../src/stores/settingsStore';
+import { shallow } from 'zustand/shallow';
 
 export default function SettingsScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const {
-    mode,
-    theme,
-    setMode,
-    setTheme,
-  } = useSettingsStore();
+  // Use shallow comparison for multiple values to prevent unnecessary re-renders
+  // Only re-renders when mode or theme actually changes
+  const { mode, theme, setMode, setTheme } = useSettingsStore(
+    (state) => ({
+      mode: state.mode,
+      theme: state.theme,
+      setMode: state.setMode,
+      setTheme: state.setTheme,
+    }),
+    shallow
+  );
   
   const insets = useSafeAreaInsets();
+
+  const handleThemeChange = useCallback((t) => {
+    setTheme(t);
+  }, [setTheme]);
+
+  const handleModeChange = useCallback((m) => {
+    setMode(m);
+  }, [setMode]);
+
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
   
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradient}>
       <SafeAreaView style={[styles.container, { paddingTop: insets.top + 12 }]} edges={['top', 'left', 'right']}>
         <BlurView tint={isDark ? 'dark' : 'light'} intensity={45} style={[styles.header, { backgroundColor: colors.surface }]}> 
-          <TouchableOpacity onPress={() => router.back()} style={[styles.headerButton, { borderColor: colors.border }]}> 
+          <Pressable 
+            delayPressIn={0}
+            delayPressOut={0}
+            onPress={handleBack} 
+            style={({ pressed }) => [
+              styles.headerButton, 
+              { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }
+            ]}
+          > 
             <Text style={[styles.backButton, { color: colors.accent }]}>← Back</Text>
-          </TouchableOpacity>
+          </Pressable>
           <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
         </BlurView>
         
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Mode Toggle */}
-          <View style={styles.sectionWrapper}>
-            <LinearGradient colors={[`${colors.accent}22`, `${colors.border}`]} style={styles.sectionGradient}> 
-              <BlurView
-                intensity={isDark ? 24 : 18}
-                tint={isDark ? 'dark' : 'light'}
-                style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              >
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Mode</Text>
-                <View style={styles.row}>
-                  {['free', 'paid'].map((value, index) => {
-                    const isActive = mode === value;
-                    return (
-                      <TouchableOpacity
-                        key={value}
-                        style={[
-                          styles.modeButton,
-                          index === 0 && styles.modeButtonSpacing,
-                          { borderColor: colors.border },
-                          isActive && [styles.modeButtonActive, { backgroundColor: colors.accent }]
-                        ]}
-                        onPress={() => setMode(value)}
-                      >
-                        <Text style={[styles.modeText, { color: isActive ? '#041016' : colors.text }]}>
-                          {value.charAt(0).toUpperCase() + value.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </BlurView>
-            </LinearGradient>
-          </View>
-         
-          {/* Theme Selector */}
+          {/* Appearance Section */}
           <View style={styles.sectionWrapper}>
             <LinearGradient colors={[`${colors.accentSecondary}18`, `${colors.border}`]} style={styles.sectionGradient}>
               <BlurView
@@ -78,33 +70,154 @@ export default function SettingsScreen() {
                 tint={isDark ? 'dark' : 'light'}
                 style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
               >
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Theme</Text>
-                <View style={styles.row}>
-                  {['light', 'dark', 'system'].map((t, index) => {
-                    const isActive = theme === t;
-                    return (
-                      <TouchableOpacity
-                        key={t}
-                        style={[
-                          styles.themeButton,
-                          index !== 2 && styles.themeButtonSpacing,
-                          { borderColor: colors.border },
-                          isActive && [styles.themeButtonActive, { backgroundColor: colors.accentSecondary }]
-                        ]}
-                        onPress={() => setTheme(t)}
-                      >
-                        <Text
-                          style={[
-                            styles.themeText,
-                            { color: isActive ? '#041016' : colors.text }
-                          ]}
-                        >
-                          {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Appearance</Text>
+                  <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                    Customize how Targetz looks and feels
+                  </Text>
                 </View>
+                
+                {/* Theme Selector */}
+                <View style={styles.settingGroup}>
+                  <Text style={[styles.settingLabel, { color: colors.text }]}>Theme</Text>
+                  <View style={styles.row}>
+                    {['light', 'dark', 'system'].map((t, index) => {
+                      const isActive = theme === t;
+                      return (
+                        <Pressable
+                          key={t}
+                          delayPressIn={0}
+                          delayPressOut={0}
+                          style={({ pressed }) => [
+                            styles.themeButton,
+                            index !== 2 && styles.themeButtonSpacing,
+                            { borderColor: colors.border, opacity: pressed ? 0.6 : 1 },
+                            isActive && [styles.themeButtonActive, { backgroundColor: colors.accentSecondary }]
+                          ]}
+                          onPress={() => handleThemeChange(t)}
+                        >
+                          <Text
+                            style={[
+                              styles.themeText,
+                              { color: isActive ? '#041016' : colors.text }
+                            ]}
+                          >
+                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              </BlurView>
+            </LinearGradient>
+          </View>
+
+          {/* Subscription Section */}
+          <View style={styles.sectionWrapper}>
+            <LinearGradient colors={[`${colors.accent}22`, `${colors.border}`]} style={styles.sectionGradient}> 
+              <BlurView
+                intensity={isDark ? 24 : 18}
+                tint={isDark ? 'dark' : 'light'}
+                style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Subscription</Text>
+                  <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                    Choose your plan and unlock premium features
+                  </Text>
+                </View>
+                <View style={styles.settingGroup}>
+                  <Text style={[styles.settingLabel, { color: colors.text }]}>Current Mode</Text>
+                  <View style={styles.row}>
+                    {['free', 'paid'].map((value, index) => {
+                      const isActive = mode === value;
+                      return (
+                        <Pressable
+                          key={value}
+                          delayPressIn={0}
+                          delayPressOut={0}
+                          style={({ pressed }) => [
+                            styles.modeButton,
+                            index === 0 && styles.modeButtonSpacing,
+                            { borderColor: colors.border, opacity: pressed ? 0.6 : 1 },
+                            isActive && [styles.modeButtonActive, { backgroundColor: colors.accent }]
+                          ]}
+                          onPress={() => handleModeChange(value)}
+                        >
+                          <Text style={[styles.modeText, { color: isActive ? '#041016' : colors.text }]}>
+                            {value.charAt(0).toUpperCase() + value.slice(1)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {mode === 'free' && (
+                    <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+                      Upgrade to paid mode for unlimited targets and advanced features
+                    </Text>
+                  )}
+                </View>
+              </BlurView>
+            </LinearGradient>
+          </View>
+
+          {/* About Section */}
+          <View style={styles.sectionWrapper}>
+            <LinearGradient colors={[`${colors.border}15`, `${colors.border}`]} style={styles.sectionGradient}>
+              <BlurView
+                intensity={isDark ? 24 : 18}
+                tint={isDark ? 'dark' : 'light'}
+                style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
+                  <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                    App information and version details
+                  </Text>
+                </View>
+                
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Version</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>1.0.0</Text>
+                </View>
+                
+                <View style={[styles.infoRow, styles.infoRowLast]}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Build</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>2024.1</Text>
+                </View>
+              </BlurView>
+            </LinearGradient>
+          </View>
+
+          {/* Support Section */}
+          <View style={styles.sectionWrapper}>
+            <LinearGradient colors={[`${colors.accentSecondary}12`, `${colors.border}`]} style={styles.sectionGradient}>
+              <BlurView
+                intensity={isDark ? 24 : 18}
+                tint={isDark ? 'dark' : 'light'}
+                style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Support</Text>
+                  <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                    Get help and share feedback
+                  </Text>
+                </View>
+                
+                <Pressable 
+                  delayPressIn={0}
+                  delayPressOut={0}
+                  style={({ pressed }) => [
+                    styles.supportButton, 
+                    { borderColor: colors.border, opacity: pressed ? 0.6 : 1 }
+                  ]}
+                  onPress={() => {}}
+                >
+                  <Text style={[styles.supportButtonText, { color: colors.text }]}>
+                    Send Feedback
+                  </Text>
+                </Pressable>
               </BlurView>
             </LinearGradient>
           </View>
@@ -165,14 +278,66 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     borderWidth: 1,
   },
+  sectionHeader: {
+    marginBottom: 20,
+  },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   sectionSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.8,
+  },
+  settingGroup: {
+    marginTop: 4,
+  },
+  settingLabel: {
+    fontSize: 14,
+    fontWeight: '600',
     marginBottom: 12,
+    letterSpacing: 0.2,
+  },
+  hintText: {
+    fontSize: 12,
+    marginTop: 10,
+    lineHeight: 16,
+    fontStyle: 'italic',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(148, 163, 184, 0.15)',
+  },
+  infoRowLast: {
+    borderBottomWidth: 0,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  supportButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  supportButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   row: {
     flexDirection: 'row',
